@@ -2,14 +2,9 @@ import { Logger } from '@nestjs/common';
 import axios from 'axios';
 import { BarRow, SpotResult, HistoryResult } from './types';
 
-const logger = new Logger('MarketDataAdapter');
-const KLINE_URL = 'https://push2his.eastmoney.com/api/qt/stock/kline/get';
+const logger = new Logger('SinaAdapter');
 const SINA_HQ_URL = 'https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeData';
-
-const EM_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  'Referer': 'https://quote.eastmoney.com',
-};
+const SINA_KLINE_URL = 'https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData';
 
 const SINA_INDEX_NODES: Record<string, string> = {
   '000300': 'hs300',
@@ -22,18 +17,6 @@ function isRealAShare(code: string): boolean {
   if (market === 'SH') return num.startsWith('60') || num.startsWith('68');
   if (market === 'SZ') return num.startsWith('00') || num.startsWith('30');
   return false;
-}
-
-function toQlibSymbol(code: string, market: number): string {
-  const padded = code.padStart(6, '0');
-  if (market === 1) return 'SH' + padded;
-  return 'SZ' + padded;
-}
-
-function toSecid(qlibSym: string): string {
-  const market = qlibSym.startsWith('SH') ? 1 : 0;
-  const code = qlibSym.slice(2);
-  return `${market}.${code}`;
 }
 
 export class AkshareAdapter {
@@ -84,122 +67,57 @@ export class AkshareAdapter {
   }
 
   async fetchHistory(qlibSym: string, start?: string, end?: string): Promise<HistoryResult> {
-    const secid = toSecid(qlibSym);
-    const beg = start ? start.replace(/-/g, '').slice(0, 8) : '19900101';
-    const endStr = end ? end.replace(/-/g, '').slice(0, 8) : '20991231';
-
-    const params: any = {
-      secid,
-      klt: 101,
-      fqt: 0,
-      beg,
-      end: endStr,
-      fields1: 'f1,f2,f3,f4,f5,f6',
-      fields2: 'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61',
-      lmt: -1,
-    };
-
+    const symbol = qlibSym.toLowerCase();
     try {
-      const res = await axios.get(KLINE_URL, { params, headers: EM_HEADERS, timeout: 15000 });
-      const klines = res.data?.data?.klines;
-      if (!klines || !Array.isArray(klines)) {
-        return { bars: [], vendor: 'em_hist' };
+      const res = await axios.get(SINA_KLINE_URL, {
+        params: { symbol, scale: 240, ma: 'no', datalen: 10000 },
+        timeout: 15000,
+      });
+      const rows = res.data;
+      if (!Array.isArray(rows)) return { bars: [], vendor: 'sina_hist' };
+
+      let bars: BarRow[] = rows.map((row: any) => ({
+        ts: new Date(row.day),
+        symbol: qlibSym,
+        open: parseFloat(row.open),
+        high: parseFloat(row.high),
+        low: parseFloat(row.low),
+        close: parseFloat(row.close),
+        volume: parseFloat(row.volume),
+        amount: null,
+        factor: 1,
+        vendor: 'sina_hist',
+      }));
+
+      if (start) {
+        const s = new Date(start);
+        bars = bars.filter(b => b.ts >= s);
+      }
+      if (end) {
+        const e = new Date(end);
+        bars = bars.filter(b => b.ts <= e);
       }
 
-      const bars: BarRow[] = klines.map((line: string) => {
-        const parts = line.split(',');
-        return {
-          ts: new Date(parts[0]),
-          symbol: qlibSym,
-          open: parseFloat(parts[1]),
-          close: parseFloat(parts[2]),
-          high: parseFloat(parts[3]),
-          low: parseFloat(parts[4]),
-          volume: parseFloat(parts[5]),
-          amount: parseFloat(parts[6]),
-          factor: 1,
-          vendor: 'em_hist',
-        };
-      });
-
-      return { bars, vendor: 'em_hist' };
+      return { bars, vendor: 'sina_hist' };
     } catch (e) {
       logger.warn(`fetchHistory ${qlibSym} failed: ${e}`);
-      return { bars: [], vendor: 'em_hist' };
+      return { bars: [], vendor: 'sina_hist' };
     }
   }
 
   async fetchIndexHistory(qlibSym: string, start?: string, end?: string): Promise<HistoryResult> {
-    const secid = toSecid(qlibSym);
-    const beg = start ? start.replace(/-/g, '').slice(0, 8) : '19900101';
-    const endStr = end ? end.replace(/-/g, '').slice(0, 8) : '20991231';
-
-    const params: any = {
-      secid,
-      klt: 101,
-      fqt: 0,
-      beg,
-      end: endStr,
-      fields1: 'f1,f2,f3,f4,f5,f6',
-      fields2: 'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61',
-      lmt: -1,
-    };
-
-    try {
-      const res = await axios.get(KLINE_URL, { params, headers: EM_HEADERS, timeout: 15000 });
-      const klines = res.data?.data?.klines;
-      if (!klines || !Array.isArray(klines)) {
-        return { bars: [], vendor: 'em_index' };
-      }
-
-      const bars: BarRow[] = klines.map((line: string) => {
-        const parts = line.split(',');
-        return {
-          ts: new Date(parts[0]),
-          symbol: qlibSym,
-          open: parseFloat(parts[1]),
-          close: parseFloat(parts[2]),
-          high: parseFloat(parts[3]),
-          low: parseFloat(parts[4]),
-          volume: parseFloat(parts[5]),
-          amount: parseFloat(parts[6]),
-          factor: 1,
-          vendor: 'em_index',
-        };
-      });
-
-      return { bars, vendor: 'em_index' };
-    } catch (e) {
-      logger.warn(`fetchIndexHistory ${qlibSym} failed: ${e}`);
-      return { bars: [], vendor: 'em_index' };
-    }
+    return this.fetchHistory(qlibSym, start, end);
   }
 
   async fetchTradeCalendar(): Promise<{ date: string; isOpen: boolean }[]> {
-    // 用上证指数的交易日推断交易日历
     try {
-      const res = await axios.get(KLINE_URL, {
-        params: {
-          secid: '1.000001',
-          klt: 101,
-          fqt: 0,
-          beg: '20100101',
-          end: '20991231',
-          fields1: 'f1,f2,f3,f4,f5,f6',
-          fields2: 'f51',
-          lmt: -1,
-        },
-        headers: EM_HEADERS,
+      const res = await axios.get(SINA_KLINE_URL, {
+        params: { symbol: 'sh000001', scale: 240, ma: 'no', datalen: 10000 },
         timeout: 15000,
       });
-      const klines = res.data?.data?.klines;
-      if (!klines || !Array.isArray(klines)) {
-        throw new Error('no calendar data');
-      }
-      return klines.map((line: string) => ({
-        date: line.split(',')[0],
-        isOpen: true,
-      }));
+      const rows = res.data;
+      if (!Array.isArray(rows)) throw new Error('no calendar data');
+      return rows.map((row: any) => ({ date: row.day, isOpen: true }));
     } catch (e) {
       logger.warn(`fetchTradeCalendar failed: ${e}`);
       throw e;
