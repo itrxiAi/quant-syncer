@@ -13,8 +13,6 @@ const EM_HEADERS = {
 
 const SINA_INDEX_NODES: Record<string, string> = {
   '000300': 'hs300',
-  '000905': 'hs500',
-  '000852': 'hs1000',
 };
 
 function isRealAShare(code: string): boolean {
