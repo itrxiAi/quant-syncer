@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Asset {
+  ashare
+  crypto
+}
+
+enum Freq {
+  d1
+  m5
+  m15
+  h1
+  h4
+}
+
+model Bar {
+  ts      DateTime  @db.Timestamptz
+  symbol  String    @db.VarChar(16)
+  asset   Asset
+  freq    Freq
+  open    Float?
+  high    Float?
+  low     Float?
+  close   Float?
+  volume  Float?
+  amount  Float?
+  factor  Float     @default(1)
+  takerBuyBaseVolume Float? @map("taker_buy_base_volume")
+  vendor  String?   @db.VarChar(32)
+  ingestTs DateTime @default(now()) @map("ingest_ts")
+
+  @@id([ts, symbol, asset, freq])
+  @@index([symbol, asset, freq, ts(sort: Desc)])
+  @@index([ts, asset, freq])
+  @@index([asset, freq, ts(sort: Desc)])
+  @@map("bar")
+}
+
+model BarRaw {
+  ts      DateTime  @db.Timestamptz
+  symbol  String    @db.VarChar(16)
+  asset   Asset
+  freq    Freq
+  vendor  String    @db.VarChar(32)
+  data    Json
+  ingestTs DateTime @default(now()) @map("ingest_ts")
+
+  @@id([ts, symbol, asset, freq, vendor])
+  @@index([symbol, asset, freq, ts(sort: Desc)])
+  @@map("bar_raw")
+}
+
+model Calendar {
+  date    DateTime @db.Date @id
+  isOpen  Boolean  @map("is_open")
+  asset   Asset
+
+  @@index([asset, date])
+  @@map("calendar")
+}
+
+model Index {
+  code      String   @id @db.VarChar(32) // e.g. csi500, csi1000, all_ashare
+  name      String?  @db.VarChar(64)
+  asset     Asset
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  members   IndexMember[]
+
+  @@map("index")
+}
+
+model IndexMember {
+  indexCode String   @map("index_code")
+  symbol    String   @db.VarChar(16)
+  inDate    DateTime @db.Date @map("in_date")
+  outDate   DateTime? @db.Date @map("out_date")
+
+  index     Index    @relation(fields: [indexCode], references: [code])
+
+  @@id([indexCode, symbol, inDate])
+  @@index([symbol])
+  @@index([indexCode, inDate, outDate])
+  @@map("index_member")
+}
+
