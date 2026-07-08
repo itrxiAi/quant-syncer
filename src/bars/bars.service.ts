@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Asset, Freq } from '../../generated/prisma/client';
+import { Asset, Freq } from '@prisma/client';
 
 const BATCH_SIZE = 500;
 

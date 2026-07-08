@@ -14,7 +14,7 @@ exports.AdminService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const akshare_adapter_1 = require("../adapters/akshare.adapter");
-const client_1 = require("../../generated/prisma/client");
+const client_1 = require("@prisma/client");
 let AdminService = AdminService_1 = class AdminService {
     prisma;
     akshare;

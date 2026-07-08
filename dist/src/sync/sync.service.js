@@ -18,7 +18,7 @@ const akshare_adapter_1 = require("../adapters/akshare.adapter");
 const binance_adapter_1 = require("../adapters/binance.adapter");
 const bars_service_1 = require("../bars/bars.service");
 const prisma_service_1 = require("../prisma/prisma.service");
-const client_1 = require("../../generated/prisma/client");
+const client_1 = require("@prisma/client");
 const CRYPTO_SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'DOGEUSDT'];
 const CRYPTO_FREQS = ['m5', 'm15', 'h1', 'h4', 'd1'];
 let SyncService = SyncService_1 = class SyncService {

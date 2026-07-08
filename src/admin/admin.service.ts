@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AkshareAdapter } from '../adapters/akshare.adapter';
-import { Asset } from '../../generated/prisma/client';
+import { Asset } from '@prisma/client';
 
 @Injectable()
 export class AdminService {

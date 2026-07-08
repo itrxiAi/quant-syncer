@@ -1,7 +1,7 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
-import { Asset } from '../../generated/prisma/client';
+import { Asset } from '@prisma/client';
 
 @Controller('v1')
 export class CalendarController {

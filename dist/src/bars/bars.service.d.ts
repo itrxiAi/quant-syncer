@@ -1,5 +1,5 @@
 import { PrismaService } from '../prisma/prisma.service';
-import { Asset, Freq } from '../../generated/prisma/client';
+import { Asset, Freq } from '@prisma/client';
 export interface BarInput {
     ts: Date;
     symbol: string;
@@ -26,9 +26,6 @@ export declare class BarsService {
         fields?: string[];
     }): Promise<{
         symbol: string;
-        ts: Date;
-        asset: Asset;
-        freq: Freq;
         open: number | null;
         high: number | null;
         low: number | null;
@@ -38,6 +35,9 @@ export declare class BarsService {
         factor: number;
         takerBuyBaseVolume: number | null;
         vendor: string | null;
+        ts: Date;
+        asset: import(".prisma/client").$Enums.Asset;
+        freq: import(".prisma/client").$Enums.Freq;
         ingestTs: Date;
     }[]>;
     batchUpsert(asset: Asset, freq: Freq, bars: BarInput[]): Promise<number>;

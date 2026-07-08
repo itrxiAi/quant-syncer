@@ -5,7 +5,7 @@ import { AkshareAdapter } from '../adapters/akshare.adapter';
 import { BinanceAdapter, FREQ_MS } from '../adapters/binance.adapter';
 import { BarsService } from '../bars/bars.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { Asset, Freq } from '../../generated/prisma/client';
+import { Asset, Freq } from '@prisma/client';
 
 const CRYPTO_SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'DOGEUSDT'];
 const CRYPTO_FREQS = ['m5', 'm15', 'h1', 'h4', 'd1'];

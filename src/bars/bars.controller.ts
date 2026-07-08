@@ -1,7 +1,7 @@
 import { Controller, Get, Query, UseGuards, BadRequestException } from '@nestjs/common';
 import { BarsService } from './bars.service';
 import { AuthGuard } from '../auth/auth.guard';
-import { Asset, Freq } from '../../generated/prisma/client';
+import { Asset, Freq } from '@prisma/client';
 
 @Controller('v1')
 export class BarsController {
