@@ -155,7 +155,7 @@ let SyncService = SyncService_1 = class SyncService {
             catch (e) {
                 errors.push(`${sym}: ${e}`);
             }
-            await new Promise((r) => setTimeout(r, 200));
+            await new Promise((r) => setTimeout(r, 1000));
         }
         this.logger.log(`catchUpAshare: ${checked} checked, ${healed} healed, ${healedRows} rows, ${errors.length} errors`);
         return { checked, healed, healedRows, errors: errors.slice(0, 20) };

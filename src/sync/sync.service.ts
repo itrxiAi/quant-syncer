@@ -152,8 +152,8 @@ export class SyncService {
       } catch (e) {
         errors.push(`${sym}: ${e}`);
       }
-      // 限速: 每次请求间隔 200ms，避免东财限流
-      await new Promise((r) => setTimeout(r, 200));
+      // 限速: 1秒间隔，避免新浪限流 (HTTP 456)
+      await new Promise((r) => setTimeout(r, 1000));
     }
 
     this.logger.log(`catchUpAshare: ${checked} checked, ${healed} healed, ${healedRows} rows, ${errors.length} errors`);
