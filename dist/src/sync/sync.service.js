@@ -114,14 +114,20 @@ let SyncService = SyncService_1 = class SyncService {
     }
     async syncCalendar() {
         const days = await this.akshare.fetchTradeCalendar();
+        const BATCH_SIZE = 500;
         let count = 0;
-        for (const d of days) {
-            await this.prisma.calendar.upsert({
-                where: { date: new Date(d.date) },
-                create: { date: new Date(d.date), isOpen: d.isOpen, asset: client_1.Asset.ashare },
-                update: { isOpen: d.isOpen },
-            });
-            count++;
+        for (let i = 0; i < days.length; i += BATCH_SIZE) {
+            const batch = days.slice(i, i + BATCH_SIZE);
+            const placeholders = batch.map((_, idx) => `($${idx * 3 + 1}, $${idx * 3 + 2}, $${idx * 3 + 3}::"Asset")`).join(', ');
+            const params = [];
+            for (const d of batch) {
+                params.push(new Date(d.date), d.isOpen, client_1.Asset.ashare);
+            }
+            const sql = `INSERT INTO "calendar" (date, is_open, asset)
+        VALUES ${placeholders}
+        ON CONFLICT (date) DO UPDATE SET is_open = EXCLUDED.is_open`;
+            await this.prisma.$executeRawUnsafe(sql, ...params);
+            count += batch.length;
         }
         this.logger.log(`syncCalendar: ${count} days`);
         return { days: count };
