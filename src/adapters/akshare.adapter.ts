@@ -6,6 +6,11 @@ const logger = new Logger('SinaAdapter');
 const SINA_HQ_URL = 'https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeData';
 const SINA_KLINE_URL = 'https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData';
 
+const SINA_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Referer': 'https://finance.sina.com.cn',
+};
+
 const SINA_INDEX_NODES: Record<string, string> = {
   '000300': 'hs300',
   '000905': 'zhishu_000905',
@@ -31,6 +36,7 @@ export class AkshareAdapter {
     for (let page = 1; page <= 60; page++) {
       const res = await axios.get(SINA_HQ_URL, {
         params: { page, num: PAGE_SIZE, sort: 'symbol', asc: 1, node: 'hs_a', _s_r_a: 'auto' },
+        headers: SINA_HEADERS,
         timeout: 15000,
       });
       const rows = res.data;
@@ -72,6 +78,7 @@ export class AkshareAdapter {
     try {
       const res = await axios.get(SINA_KLINE_URL, {
         params: { symbol, scale: 240, ma: 'no', datalen: 10000 },
+        headers: SINA_HEADERS,
         timeout: 15000,
       });
       const rows = res.data;
@@ -114,6 +121,7 @@ export class AkshareAdapter {
     try {
       const res = await axios.get(SINA_KLINE_URL, {
         params: { symbol: 'sh000001', scale: 240, ma: 'no', datalen: 10000 },
+        headers: SINA_HEADERS,
         timeout: 15000,
       });
       const rows = res.data;
@@ -138,6 +146,7 @@ export class AkshareAdapter {
       for (let page = 1; page <= 20; page++) {
         const res = await axios.get(SINA_HQ_URL, {
           params: { page, num: PAGE_SIZE, sort: 'symbol', asc: 1, node, _s_r_a: 'auto' },
+          headers: SINA_HEADERS,
           timeout: 15000,
         });
         const rows = res.data;
