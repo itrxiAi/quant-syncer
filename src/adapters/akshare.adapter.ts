@@ -8,6 +8,7 @@ const SINA_KLINE_URL = 'https://money.finance.sina.com.cn/quotes_service/api/jso
 
 const SINA_INDEX_NODES: Record<string, string> = {
   '000300': 'hs300',
+  '000905': 'zhishu_000905',
 };
 
 function isRealAShare(code: string): boolean {

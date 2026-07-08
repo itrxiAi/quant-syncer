@@ -11,6 +11,7 @@ const SINA_HQ_URL = 'https://vip.stock.finance.sina.com.cn/quotes_service/api/js
 const SINA_KLINE_URL = 'https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData';
 const SINA_INDEX_NODES = {
     '000300': 'hs300',
+    '000905': 'zhishu_000905',
 };
 function isRealAShare(code) {
     if (!code || code.length < 8)
