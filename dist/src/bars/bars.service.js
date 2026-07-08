@@ -68,7 +68,7 @@ let BarsService = class BarsService {
             const batch = bars.slice(i, i + BATCH_SIZE);
             const placeholders = batch.map((_, idx) => {
                 const off = idx * 12;
-                return `($${off + 1}, $${off + 2}, $${off + 3}, $${off + 4}, $${off + 5}, $${off + 6}, $${off + 7}, $${off + 8}, $${off + 9}, $${off + 10}, $${off + 11}, $${off + 12})`;
+                return `($${off + 1}, $${off + 2}, $${off + 3}::"Asset", $${off + 4}::"Freq", $${off + 5}, $${off + 6}, $${off + 7}, $${off + 8}, $${off + 9}, $${off + 10}, $${off + 11}, $${off + 12})`;
             }).join(', ');
             const params = [];
             for (const b of batch) {
