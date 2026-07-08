@@ -1,6 +1,6 @@
 import type * as runtime from "@prisma/client/runtime/library";
-import * as $Enums from "./enums.js";
-import type * as Prisma from "./internal/prismaNamespace.js";
+import * as $Enums from "./enums";
+import type * as Prisma from "./internal/prismaNamespace";
 export type DateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | Prisma.DateTimeFieldRefInput<$PrismaModel>;
     in?: Date[] | string[] | Prisma.ListDateTimeFieldRefInput<$PrismaModel>;

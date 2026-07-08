@@ -1,6 +1,6 @@
 import type * as runtime from "@prisma/client/runtime/library";
-import type * as $Enums from "../enums.js";
-import type * as Prisma from "../internal/prismaNamespace.js";
+import type * as $Enums from "../enums";
+import type * as Prisma from "../internal/prismaNamespace";
 export type CalendarModel = runtime.Types.Result.DefaultSelection<Prisma.$CalendarPayload>;
 export type AggregateCalendar = {
     _count: CalendarCountAggregateOutputType | null;

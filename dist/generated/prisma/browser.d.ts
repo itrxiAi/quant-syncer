@@ -1,7 +1,7 @@
-import * as Prisma from './internal/prismaNamespaceBrowser.js';
+import * as Prisma from './internal/prismaNamespaceBrowser';
 export { Prisma };
-export * as $Enums from './enums.js';
-export * from './enums.js';
+export * as $Enums from './enums';
+export * from './enums';
 export type Bar = Prisma.BarModel;
 export type BarRaw = Prisma.BarRawModel;
 export type Calendar = Prisma.CalendarModel;

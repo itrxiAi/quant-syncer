@@ -1,5 +1,5 @@
 import type * as runtime from "@prisma/client/runtime/library";
-import type * as Prisma from "../internal/prismaNamespace.js";
+import type * as Prisma from "../internal/prismaNamespace";
 export type IndexMemberModel = runtime.Types.Result.DefaultSelection<Prisma.$IndexMemberPayload>;
 export type AggregateIndexMember = {
     _count: IndexMemberCountAggregateOutputType | null;

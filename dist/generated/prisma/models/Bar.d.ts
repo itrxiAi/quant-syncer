@@ -1,6 +1,6 @@
 import type * as runtime from "@prisma/client/runtime/library";
-import type * as $Enums from "../enums.js";
-import type * as Prisma from "../internal/prismaNamespace.js";
+import type * as $Enums from "../enums";
+import type * as Prisma from "../internal/prismaNamespace";
 export type BarModel = runtime.Types.Result.DefaultSelection<Prisma.$BarPayload>;
 export type AggregateBar = {
     _count: BarCountAggregateOutputType | null;
