@@ -18,6 +18,31 @@ export declare class SyncService {
         rows: number;
         vendor: string;
     }>;
+    manualSyncAShare(): Promise<{
+        skipped: boolean;
+        reason: string;
+        error?: undefined;
+    } | {
+        skipped: boolean;
+        reason?: undefined;
+        error?: undefined;
+    } | {
+        skipped: boolean;
+        error: string;
+        reason?: undefined;
+    }>;
+    manualSyncCrypto(): Promise<Record<string, number> | {
+        skipped: boolean;
+        reason: string;
+        error?: undefined;
+    } | {
+        error: string;
+        skipped?: undefined;
+        reason?: undefined;
+    }>;
+    manualSyncCalendar(): Promise<{
+        days: number;
+    }>;
     syncCrypto(symbols: string[], freqs: string[]): Promise<Record<string, number>>;
     syncCalendar(): Promise<{
         days: number;

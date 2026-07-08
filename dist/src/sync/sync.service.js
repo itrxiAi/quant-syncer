@@ -45,6 +45,42 @@ let SyncService = SyncService_1 = class SyncService {
         this.logger.log(`syncAShareSpot done: ${totalRows} rows`);
         return { symbols: bars.length, rows: totalRows, vendor };
     }
+    async manualSyncAShare() {
+        if (this.ashareSyncing)
+            return { skipped: true, reason: 'ashare sync already running' };
+        this.ashareSyncing = true;
+        try {
+            await this.syncCalendar();
+            await this.catchUpAshare();
+            await this.syncAShareSpot();
+            return { skipped: false };
+        }
+        catch (e) {
+            this.logger.error(`manual ashare sync failed: ${e}`);
+            return { skipped: false, error: String(e) };
+        }
+        finally {
+            this.ashareSyncing = false;
+        }
+    }
+    async manualSyncCrypto() {
+        if (this.cryptoSyncing)
+            return { skipped: true, reason: 'crypto sync already running' };
+        this.cryptoSyncing = true;
+        try {
+            return await this.syncCrypto(CRYPTO_SYMBOLS, CRYPTO_FREQS);
+        }
+        catch (e) {
+            this.logger.error(`manual crypto sync failed: ${e}`);
+            return { error: String(e) };
+        }
+        finally {
+            this.cryptoSyncing = false;
+        }
+    }
+    async manualSyncCalendar() {
+        return await this.syncCalendar();
+    }
     async syncCrypto(symbols, freqs) {
         const result = {};
         for (const sym of symbols) {

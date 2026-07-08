@@ -33,12 +33,45 @@ export class SyncService {
     return { symbols: bars.length, rows: totalRows, vendor };
   }
 
+  async manualSyncAShare() {
+    if (this.ashareSyncing) return { skipped: true, reason: 'ashare sync already running' };
+    this.ashareSyncing = true;
+    try {
+      await this.syncCalendar();
+      await this.catchUpAshare();
+      await this.syncAShareSpot();
+      return { skipped: false };
+    } catch (e) {
+      this.logger.error(`manual ashare sync failed: ${e}`);
+      return { skipped: false, error: String(e) };
+    } finally {
+      this.ashareSyncing = false;
+    }
+  }
+
+  async manualSyncCrypto() {
+    if (this.cryptoSyncing) return { skipped: true, reason: 'crypto sync already running' };
+    this.cryptoSyncing = true;
+    try {
+      return await this.syncCrypto(CRYPTO_SYMBOLS, CRYPTO_FREQS);
+    } catch (e) {
+      this.logger.error(`manual crypto sync failed: ${e}`);
+      return { error: String(e) };
+    } finally {
+      this.cryptoSyncing = false;
+    }
+  }
+
+  async manualSyncCalendar() {
+    return await this.syncCalendar();
+  }
+
   /**
    * crypto catch-up：查本地 latest_ts，若已有数据则用 fetchRange 精确拉 [latest+step, now]
    * 的缺口；首次(无数据)用 fetchRecent(600) 起步做种子数据。
    * 无论停机多久，都能补齐，不再依赖固定 600 根窗口。
    */
-  async syncCrypto(symbols: string[], freqs: string[]) {
+  async syncCrypto(symbols: string[], freqs: string[]): Promise<Record<string, number>> {
     const result: Record<string, number> = {};
     for (const sym of symbols) {
       for (const freq of freqs) {

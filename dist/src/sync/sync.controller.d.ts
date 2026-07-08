@@ -3,11 +3,27 @@ export declare class SyncController {
     private readonly syncService;
     constructor(syncService: SyncService);
     syncAShareSpot(): Promise<{
-        symbols: number;
-        rows: number;
-        vendor: string;
+        skipped: boolean;
+        reason: string;
+        error?: undefined;
+    } | {
+        skipped: boolean;
+        reason?: undefined;
+        error?: undefined;
+    } | {
+        skipped: boolean;
+        error: string;
+        reason?: undefined;
     }>;
-    syncCrypto(): Promise<Record<string, number>>;
+    syncCrypto(): Promise<Record<string, number> | {
+        skipped: boolean;
+        reason: string;
+        error?: undefined;
+    } | {
+        error: string;
+        skipped?: undefined;
+        reason?: undefined;
+    }>;
     syncCalendar(): Promise<{
         days: number;
     }>;

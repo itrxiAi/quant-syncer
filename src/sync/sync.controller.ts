@@ -9,21 +9,18 @@ export class SyncController {
   @Post('sync-ashare-spot')
   @UseGuards(AdminGuard)
   async syncAShareSpot() {
-    return this.syncService.syncAShareSpot();
+    return this.syncService.manualSyncAShare();
   }
 
   @Post('sync-crypto')
   @UseGuards(AdminGuard)
   async syncCrypto() {
-    return this.syncService.syncCrypto(
-      ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'DOGEUSDT'],
-      ['m5', 'm15', 'h1', 'h4', 'd1'],
-    );
+    return this.syncService.manualSyncCrypto();
   }
 
   @Post('sync-calendar')
   @UseGuards(AdminGuard)
   async syncCalendar() {
-    return this.syncService.syncCalendar();
+    return this.syncService.manualSyncCalendar();
   }
 }

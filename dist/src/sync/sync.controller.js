@@ -19,13 +19,13 @@ let SyncController = class SyncController {
         this.syncService = syncService;
     }
     async syncAShareSpot() {
-        return this.syncService.syncAShareSpot();
+        return this.syncService.manualSyncAShare();
     }
     async syncCrypto() {
-        return this.syncService.syncCrypto(['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'DOGEUSDT'], ['m5', 'm15', 'h1', 'h4', 'd1']);
+        return this.syncService.manualSyncCrypto();
     }
     async syncCalendar() {
-        return this.syncService.syncCalendar();
+        return this.syncService.manualSyncCalendar();
     }
 };
 exports.SyncController = SyncController;
