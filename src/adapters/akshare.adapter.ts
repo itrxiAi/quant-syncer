@@ -63,6 +63,7 @@ export class AkshareAdapter {
       }
 
       if (rows.length < PAGE_SIZE) break;
+      await new Promise((r) => setTimeout(r, 300));
     }
 
     if (bars.length === 0) {
@@ -161,6 +162,7 @@ export class AkshareAdapter {
         }
 
         if (rows.length < PAGE_SIZE) break;
+        await new Promise((r) => setTimeout(r, 300));
       }
 
       logger.log(`fetchIndexConstituents ${indexSymbol}: ${constituents.length} stocks`);
