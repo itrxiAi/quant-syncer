@@ -52,7 +52,7 @@ class AkshareAdapter {
                     low: Number(row.low) || null,
                     close: trade,
                     volume: Number(row.volume) || null,
-                    amount: Number(row.amount) || null,
+                    amount: null,
                     factor: 1,
                     vendor: 'sina_spot',
                 });
