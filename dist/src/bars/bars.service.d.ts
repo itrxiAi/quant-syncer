@@ -10,6 +10,7 @@ export interface BarInput {
     volume: number | null;
     amount: number | null;
     factor: number;
+    takerBuyBaseVolume?: number | null;
     vendor: string;
 }
 export declare class BarsService {
