@@ -1,8 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Asset, Freq } from '@prisma/client';
 
 const BATCH_SIZE = 500;
+const MAX_ROWS = 200000;
+const MAX_RANGE_DAYS_BY_FREQ: Record<string, number> = {
+  d1: 10950,   // 30 years × ~250 trading days = ~7500 rows/symbol
+  h4: 3650,    // 10 years × ~2190 bars/year = ~21900 rows/symbol
+  h1: 2190,    // 6 years × ~8760 bars/year = ~52560 rows/symbol
+  m15: 1095,   // 3 years × ~35040 bars/year = ~105120 rows/symbol
+  m5: 548,     // 1.5 years × ~105120 bars/year = ~157680 rows/symbol
+};
 
 export interface BarInput {
   ts: Date;
@@ -36,10 +44,12 @@ export class BarsService {
       freq: params.freq,
     };
 
+    let multiSymbol = false;
     if (params.symbol) {
       where.symbol = params.symbol;
     } else if (params.symbols && params.symbols.length > 0) {
       where.symbol = { in: params.symbols };
+      multiSymbol = params.symbols.length > 1;
     } else if (params.index) {
       const members = await this.prisma.indexMember.findMany({
         where: {
@@ -49,12 +59,25 @@ export class BarsService {
         select: { symbol: true },
       });
       where.symbol = { in: members.map((m) => m.symbol) };
+      multiSymbol = true;
+    }
+
+    if (multiSymbol && !params.start && !params.end) {
+      throw new BadRequestException('start and/or end date range is required when querying multiple symbols or an index');
     }
 
     if (params.start || params.end) {
       where.ts = {};
       if (params.start) where.ts.gte = new Date(params.start);
       if (params.end) where.ts.lte = new Date(params.end);
+
+      if (params.start && params.end) {
+        const days = (new Date(params.end).getTime() - new Date(params.start).getTime()) / 86400000;
+        const maxDays = MAX_RANGE_DAYS_BY_FREQ[params.freq] ?? 365;
+        if (days > maxDays) {
+          throw new BadRequestException(`date range too large for freq=${params.freq} (max ${maxDays} days)`);
+        }
+      }
     }
 
     const select: any = {};
@@ -71,6 +94,7 @@ export class BarsService {
     return this.prisma.bar.findMany({
       where,
       orderBy: [{ symbol: 'asc' }, { ts: 'asc' }],
+      take: MAX_ROWS,
       ...(Object.keys(select).length > 0 ? { select } : {}),
     });
   }
@@ -115,21 +139,73 @@ export class BarsService {
     return row?.ts ?? null;
   }
 
-  async listSymbols(asset: Asset, freq: Freq) {
-    const rows = await this.prisma.bar.findMany({
-      where: { asset, freq },
-      distinct: ['symbol'],
+  // 全市场 symbol 目录用伪指数(all_ashare/all_crypto)承载：上市=inDate，退市=outDate，
+  // 语义与真实指数成分股完全一致，避免对上百万行的 bar 表做 DISTINCT 扫描。
+  private allSymbolsIndexCode(asset: Asset) {
+    return asset === Asset.ashare ? 'all_ashare' : 'all_crypto';
+  }
+
+  async ensureSymbolsRegistered(asset: Asset, symbols: string[]) {
+    const indexCode = this.allSymbolsIndexCode(asset);
+    await this.prisma.index.upsert({
+      where: { code: indexCode },
+      create: { code: indexCode, name: `All ${asset} symbols`, asset },
+      update: {},
+    });
+
+    const existing = await this.prisma.indexMember.findMany({
+      where: { indexCode, outDate: null },
       select: { symbol: true },
     });
-    return rows.map((r) => r.symbol).sort();
+    const existingSet = new Set(existing.map((m) => m.symbol));
+    const today = new Date();
+    let added = 0;
+    for (const sym of symbols) {
+      if (existingSet.has(sym)) continue;
+      await this.prisma.indexMember.upsert({
+        where: { indexCode_symbol_inDate: { indexCode, symbol: sym, inDate: today } },
+        create: { indexCode, symbol: sym, inDate: today },
+        update: {},
+      });
+      added++;
+    }
+    return { total: symbols.length, added };
+  }
+
+  async listSymbols(asset: Asset, freq: Freq) {
+    if (asset === Asset.ashare) {
+      const rows = await this.prisma.indexMember.findMany({
+        where: { indexCode: this.allSymbolsIndexCode(asset) },
+        select: { symbol: true },
+        distinct: ['symbol'],
+        orderBy: { symbol: 'asc' },
+      });
+      return rows.map((r) => r.symbol);
+    }
+    const rows = await (this.prisma as any).$queryRawUnsafe(
+      `SELECT DISTINCT symbol FROM "bar" WHERE asset = $1::"Asset" AND freq = $2::"Freq" ORDER BY symbol`,
+      asset, freq,
+    ) as any[];
+    return rows.map((r) => r.symbol);
   }
 
   async listLatest(asset: Asset, freq: Freq) {
-    const symbols = await this.listSymbols(asset, freq);
+    const indexCode = this.allSymbolsIndexCode(asset);
+    const rows = await (this.prisma as any).$queryRawUnsafe(
+      `SELECT m.symbol, b.ts
+       FROM "index_member" m
+       LEFT JOIN LATERAL (
+         SELECT ts FROM "bar"
+         WHERE symbol = m.symbol AND asset = $1::"Asset" AND freq = $2::"Freq"
+           AND ts >= date_trunc('year', NOW()) - INTERVAL '1 month'
+         ORDER BY ts DESC LIMIT 1
+       ) b ON true
+       WHERE m.index_code = $3`,
+      asset, freq, indexCode,
+    ) as any[];
     const result: Record<string, string | null> = {};
-    for (const sym of symbols) {
-      const ts = await this.latestTs(asset, sym, freq);
-      result[sym] = ts ? ts.toISOString() : null;
+    for (const r of rows) {
+      result[r.symbol] = r.ts ? new Date(r.ts).toISOString() : null;
     }
     return result;
   }

@@ -21,7 +21,7 @@ export declare class BarsController {
     symbols(asset?: string, freq?: string): Promise<{
         asset: string;
         freq: string;
-        symbols: string[];
+        symbols: any[];
     }>;
     latest(asset?: string, freq?: string): Promise<Record<string, string | null>>;
 }

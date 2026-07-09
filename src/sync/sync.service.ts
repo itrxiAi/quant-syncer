@@ -134,7 +134,8 @@ export class SyncService {
   async catchUpAshare() {
     const { bars: spotBars } = await this.akshare.fetchSpot();
     const allSymbols = spotBars.map((b) => b.symbol);
-    this.logger.log(`catchUpAshare: ${allSymbols.length} symbols from spot`);
+    const { added } = await this.barsService.ensureSymbolsRegistered(Asset.ashare, allSymbols);
+    this.logger.log(`catchUpAshare: ${allSymbols.length} symbols from spot (${added} newly registered)`);
 
     const lastTradingDay = await this.getLastCompletedTradingDay();
 

@@ -42,6 +42,11 @@ export declare class BarsService {
     }[]>;
     batchUpsert(asset: Asset, freq: Freq, bars: BarInput[]): Promise<number>;
     latestTs(asset: Asset, symbol: string, freq: Freq): Promise<Date | null>;
-    listSymbols(asset: Asset, freq: Freq): Promise<string[]>;
+    private allSymbolsIndexCode;
+    ensureSymbolsRegistered(asset: Asset, symbols: string[]): Promise<{
+        total: number;
+        added: number;
+    }>;
+    listSymbols(asset: Asset, freq: Freq): Promise<any[]>;
     listLatest(asset: Asset, freq: Freq): Promise<Record<string, string | null>>;
 }
