@@ -24,4 +24,11 @@ export class SyncController {
   async syncCalendar() {
     return this.syncService.manualSyncCalendar();
   }
+
+  @Post('sync-index-bars')
+  @UseGuards(AdminGuard)
+  async syncIndexBars() {
+    this.syncService.syncIndexBars();
+    return { status: 'accepted', message: 'index bars sync started' };
+  }
 }

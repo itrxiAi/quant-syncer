@@ -10,6 +10,8 @@ import { Asset, Freq } from '@prisma/client';
 const CRYPTO_SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'DOGEUSDT'];
 const CRYPTO_FREQS = ['m5', 'm15', 'h1', 'h4', 'd1'];
 
+const INDEX_SYMBOLS = ['SH000300', 'SH000905', 'SH000852'];
+
 @Injectable()
 export class SyncService {
   private readonly logger = new Logger(SyncService.name);
@@ -68,11 +70,12 @@ export class SyncService {
 
   /**
    * crypto catch-up：查本地 latest_ts，若已有数据则用 fetchRange 精确拉 [latest+step, now]
-   * 的缺口；首次(无数据)用 fetchRecent(600) 起步做种子数据。
-   * 无论停机多久，都能补齐，不再依赖固定 600 根窗口。
+   * 的缺口；首次(无数据)用 fetchRange 从 400 天前开始拉，确保策略有足够历史。
+   * 无论停机多久，都能补齐。
    */
   async syncCrypto(symbols: string[], freqs: string[]): Promise<Record<string, number>> {
     const result: Record<string, number> = {};
+    const BACKFILL_MS = 400 * 24 * 60 * 60 * 1000; // 400 days
     for (const sym of symbols) {
       for (const freq of freqs) {
         const key = `${sym}@${freq}`;
@@ -80,7 +83,8 @@ export class SyncService {
           const latest = await this.barsService.latestTs(Asset.crypto, sym, freq as Freq);
           let bars;
           if (latest === null) {
-            bars = await this.binance.fetchRecent(sym, freq, 600);
+            const startMs = Date.now() - BACKFILL_MS;
+            bars = await this.binance.fetchRange(sym, freq, startMs);
           } else {
             const stepMs = FREQ_MS[freq];
             bars = await this.binance.fetchRange(sym, freq, latest.getTime() + stepMs);
@@ -201,6 +205,7 @@ export class SyncService {
       await this.syncCalendar();
       await this.catchUpAshare();
       await this.syncAShareSpot();
+      await this.syncIndexBars();
       this.logger.log('=== ashare daily sync done ===');
     } catch (e) {
       this.logger.error(`ashare sync failed: ${e}`);
@@ -249,11 +254,29 @@ export class SyncService {
     }
   }
 
+  async syncIndexBars() {
+    this.logger.log('syncing index bars...');
+    for (const sym of INDEX_SYMBOLS) {
+      try {
+        const { bars } = await this.akshare.fetchIndexHistory(sym);
+        if (bars.length > 0) {
+          await this.barsService.batchUpsert(Asset.ashare_index, 'd1', bars);
+          this.logger.log(`syncIndexBars ${sym}: ${bars.length} rows`);
+        } else {
+          this.logger.warn(`syncIndexBars ${sym}: no data`);
+        }
+      } catch (e) {
+        this.logger.error(`syncIndexBars ${sym} failed: ${e}`);
+      }
+    }
+  }
+
   async runOnce(asset: string) {
     if (asset === 'ashare') {
       await this.syncCalendar();
       await this.catchUpAshare();
       await this.syncAShareSpot();
+      await this.syncIndexBars();
     } else if (asset === 'crypto') {
       await this.syncCrypto(CRYPTO_SYMBOLS, CRYPTO_FREQS);
     }

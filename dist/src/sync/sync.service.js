@@ -21,6 +21,7 @@ const prisma_service_1 = require("../prisma/prisma.service");
 const client_1 = require("@prisma/client");
 const CRYPTO_SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'DOGEUSDT'];
 const CRYPTO_FREQS = ['m5', 'm15', 'h1', 'h4', 'd1'];
+const INDEX_SYMBOLS = ['SH000300', 'SH000905', 'SH000852'];
 let SyncService = SyncService_1 = class SyncService {
     adminService;
     akshare;
@@ -196,6 +197,7 @@ let SyncService = SyncService_1 = class SyncService {
             await this.syncCalendar();
             await this.catchUpAshare();
             await this.syncAShareSpot();
+            await this.syncIndexBars();
             this.logger.log('=== ashare daily sync done ===');
         }
         catch (e) {
@@ -245,11 +247,30 @@ let SyncService = SyncService_1 = class SyncService {
             this.ashareSyncing = false;
         }
     }
+    async syncIndexBars() {
+        this.logger.log('syncing index bars...');
+        for (const sym of INDEX_SYMBOLS) {
+            try {
+                const { bars } = await this.akshare.fetchIndexHistory(sym);
+                if (bars.length > 0) {
+                    await this.barsService.batchUpsert(client_1.Asset.ashare_index, 'd1', bars);
+                    this.logger.log(`syncIndexBars ${sym}: ${bars.length} rows`);
+                }
+                else {
+                    this.logger.warn(`syncIndexBars ${sym}: no data`);
+                }
+            }
+            catch (e) {
+                this.logger.error(`syncIndexBars ${sym} failed: ${e}`);
+            }
+        }
+    }
     async runOnce(asset) {
         if (asset === 'ashare') {
             await this.syncCalendar();
             await this.catchUpAshare();
             await this.syncAShareSpot();
+            await this.syncIndexBars();
         }
         else if (asset === 'crypto') {
             await this.syncCrypto(CRYPTO_SYMBOLS, CRYPTO_FREQS);

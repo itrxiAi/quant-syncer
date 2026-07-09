@@ -28,6 +28,10 @@ let SyncController = class SyncController {
     async syncCalendar() {
         return this.syncService.manualSyncCalendar();
     }
+    async syncIndexBars() {
+        this.syncService.syncIndexBars();
+        return { status: 'accepted', message: 'index bars sync started' };
+    }
 };
 exports.SyncController = SyncController;
 __decorate([
@@ -51,6 +55,13 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], SyncController.prototype, "syncCalendar", null);
+__decorate([
+    (0, common_1.Post)('sync-index-bars'),
+    (0, common_1.UseGuards)(auth_guard_1.AdminGuard),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], SyncController.prototype, "syncIndexBars", null);
 exports.SyncController = SyncController = __decorate([
     (0, common_1.Controller)('v1/admin'),
     __metadata("design:paramtypes", [sync_service_1.SyncService])

@@ -59,5 +59,6 @@ export declare class SyncService {
     syncAShareDaily(): Promise<void>;
     syncCryptoContinuous(): Promise<void>;
     syncIndexMonthly(): Promise<void>;
+    syncIndexBars(): Promise<void>;
     runOnce(asset: string): Promise<void>;
 }

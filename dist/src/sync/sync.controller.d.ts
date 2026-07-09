@@ -18,4 +18,8 @@ export declare class SyncController {
     syncCalendar(): Promise<{
         days: number;
     }>;
+    syncIndexBars(): Promise<{
+        status: string;
+        message: string;
+    }>;
 }
