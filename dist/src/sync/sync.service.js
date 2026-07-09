@@ -84,6 +84,7 @@ let SyncService = SyncService_1 = class SyncService {
     }
     async syncCrypto(symbols, freqs) {
         const result = {};
+        const BACKFILL_MS = 400 * 24 * 60 * 60 * 1000;
         for (const sym of symbols) {
             for (const freq of freqs) {
                 const key = `${sym}@${freq}`;
@@ -91,7 +92,8 @@ let SyncService = SyncService_1 = class SyncService {
                     const latest = await this.barsService.latestTs(client_1.Asset.crypto, sym, freq);
                     let bars;
                     if (latest === null) {
-                        bars = await this.binance.fetchRecent(sym, freq, 600);
+                        const startMs = Date.now() - BACKFILL_MS;
+                        bars = await this.binance.fetchRange(sym, freq, startMs);
                     }
                     else {
                         const stepMs = binance_adapter_1.FREQ_MS[freq];
