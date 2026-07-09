@@ -75,7 +75,7 @@ export class SyncService {
    */
   async syncCrypto(symbols: string[], freqs: string[]): Promise<Record<string, number>> {
     const result: Record<string, number> = {};
-    const BACKFILL_MS = 400 * 24 * 60 * 60 * 1000; // 400 days
+    const BACKFILL_MS = Date.now() - new Date('2019-01-01').getTime(); // full history from 2019
     for (const sym of symbols) {
       for (const freq of freqs) {
         const key = `${sym}@${freq}`;

@@ -84,7 +84,7 @@ let SyncService = SyncService_1 = class SyncService {
     }
     async syncCrypto(symbols, freqs) {
         const result = {};
-        const BACKFILL_MS = 400 * 24 * 60 * 60 * 1000;
+        const BACKFILL_MS = Date.now() - new Date('2019-01-01').getTime();
         for (const sym of symbols) {
             for (const freq of freqs) {
                 const key = `${sym}@${freq}`;
