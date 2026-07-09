@@ -132,11 +132,14 @@ let SyncService = SyncService_1 = class SyncService {
         this.logger.log(`syncCalendar: ${count} days`);
         return { days: count };
     }
+    memTag(label) {
+        const m = process.memoryUsage();
+        this.logger.log(`[mem] ${label}: rss=${(m.rss / 1024 / 1024).toFixed(0)}MB heap=${(m.heapUsed / 1024 / 1024).toFixed(0)}/${(m.heapTotal / 1024 / 1024).toFixed(0)}MB ext=${(m.external / 1024 / 1024).toFixed(0)}MB arrayBuf=${(m.arrayBuffers / 1024 / 1024).toFixed(0)}MB`);
+    }
     async catchUpAshare() {
         const { bars: spotBars } = await this.akshare.fetchSpot();
-        const universe = spotBars.map((b) => b.symbol);
-        const existingSymbols = await this.barsService.listSymbols(client_1.Asset.ashare, client_1.Freq.d1);
-        const allSymbols = Array.from(new Set([...universe, ...existingSymbols]));
+        const allSymbols = spotBars.map((b) => b.symbol);
+        this.logger.log(`catchUpAshare: ${allSymbols.length} symbols from spot`);
         const lastTradingDay = await this.getLastCompletedTradingDay();
         let checked = 0;
         let healed = 0;
@@ -144,8 +147,9 @@ let SyncService = SyncService_1 = class SyncService {
         const errors = [];
         for (const sym of allSymbols) {
             checked++;
-            if (checked % 500 === 0)
-                this.logger.log(`catchUpAshare: checked ${checked}/${allSymbols.length}`);
+            if (checked % 500 === 0) {
+                this.logger.log(`catchUpAshare: ${checked}/${allSymbols.length} healed=${healed}`);
+            }
             const latest = await this.barsService.latestTs(client_1.Asset.ashare, sym, client_1.Freq.d1);
             if (latest !== null && lastTradingDay !== null && latest >= lastTradingDay) {
                 continue;
@@ -203,6 +207,10 @@ let SyncService = SyncService_1 = class SyncService {
     async syncCryptoContinuous() {
         if (this.cryptoSyncing) {
             this.logger.warn('crypto sync already running, skip');
+            return;
+        }
+        if (this.ashareSyncing) {
+            this.logger.warn('ashare sync running, skip crypto cron');
             return;
         }
         this.cryptoSyncing = true;

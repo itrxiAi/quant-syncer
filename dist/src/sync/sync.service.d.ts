@@ -47,6 +47,7 @@ export declare class SyncService {
     syncCalendar(): Promise<{
         days: number;
     }>;
+    private memTag;
     catchUpAshare(): Promise<{
         checked: number;
         healed: number;

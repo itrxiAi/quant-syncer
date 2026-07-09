@@ -19,7 +19,8 @@ let SyncController = class SyncController {
         this.syncService = syncService;
     }
     async syncAShareSpot() {
-        return this.syncService.manualSyncAShare();
+        this.syncService.manualSyncAShare();
+        return { status: 'accepted', message: 'ashare sync started in background' };
     }
     async syncCrypto() {
         return this.syncService.manualSyncCrypto();

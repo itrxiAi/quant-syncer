@@ -126,11 +126,15 @@ export class SyncService {
    * fetchHistory 拉全量补齐。首次运行(DB 为空)时对所有 symbol 都会触发，
    * 效果等价于全量 backfill；稳态下(每天正常跑过) laggard≈0，接近零成本。
    */
+  private memTag(label: string) {
+    const m = process.memoryUsage();
+    this.logger.log(`[mem] ${label}: rss=${(m.rss/1024/1024).toFixed(0)}MB heap=${(m.heapUsed/1024/1024).toFixed(0)}/${(m.heapTotal/1024/1024).toFixed(0)}MB ext=${(m.external/1024/1024).toFixed(0)}MB arrayBuf=${(m.arrayBuffers/1024/1024).toFixed(0)}MB`);
+  }
+
   async catchUpAshare() {
     const { bars: spotBars } = await this.akshare.fetchSpot();
-    const universe = spotBars.map((b) => b.symbol);
-    const existingSymbols = await this.barsService.listSymbols(Asset.ashare, Freq.d1);
-    const allSymbols = Array.from(new Set([...universe, ...existingSymbols]));
+    const allSymbols = spotBars.map((b) => b.symbol);
+    this.logger.log(`catchUpAshare: ${allSymbols.length} symbols from spot`);
 
     const lastTradingDay = await this.getLastCompletedTradingDay();
 
@@ -141,7 +145,9 @@ export class SyncService {
 
     for (const sym of allSymbols) {
       checked++;
-      if (checked % 500 === 0) this.logger.log(`catchUpAshare: checked ${checked}/${allSymbols.length}`);
+      if (checked % 500 === 0) {
+        this.logger.log(`catchUpAshare: ${checked}/${allSymbols.length} healed=${healed}`);
+      }
 
       const latest = await this.barsService.latestTs(Asset.ashare, sym, Freq.d1);
       if (latest !== null && lastTradingDay !== null && latest >= lastTradingDay) {
@@ -206,6 +212,10 @@ export class SyncService {
   async syncCryptoContinuous() {
     if (this.cryptoSyncing) {
       this.logger.warn('crypto sync already running, skip');
+      return;
+    }
+    if (this.ashareSyncing) {
+      this.logger.warn('ashare sync running, skip crypto cron');
       return;
     }
     this.cryptoSyncing = true;

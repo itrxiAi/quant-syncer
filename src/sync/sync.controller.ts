@@ -9,7 +9,8 @@ export class SyncController {
   @Post('sync-ashare-spot')
   @UseGuards(AdminGuard)
   async syncAShareSpot() {
-    return this.syncService.manualSyncAShare();
+    this.syncService.manualSyncAShare();
+    return { status: 'accepted', message: 'ashare sync started in background' };
   }
 
   @Post('sync-crypto')
