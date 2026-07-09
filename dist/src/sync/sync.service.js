@@ -90,22 +90,23 @@ let SyncService = SyncService_1 = class SyncService {
                 const key = `${sym}@${freq}`;
                 try {
                     const latest = await this.barsService.latestTs(client_1.Asset.crypto, sym, freq);
-                    let bars;
+                    let count = 0;
                     if (latest === null) {
                         const startMs = Date.now() - BACKFILL_MS;
-                        bars = await this.binance.fetchRange(sym, freq, startMs);
+                        count = await this.binance.fetchRangeStream(sym, freq, startMs, async (bars) => {
+                            await this.barsService.batchUpsert(client_1.Asset.crypto, freq, bars);
+                        });
                     }
                     else {
                         const stepMs = binance_adapter_1.FREQ_MS[freq];
-                        bars = await this.binance.fetchRange(sym, freq, latest.getTime() + stepMs);
+                        const bars = await this.binance.fetchRange(sym, freq, latest.getTime() + stepMs);
+                        if (bars.length > 0) {
+                            await this.barsService.batchUpsert(client_1.Asset.crypto, freq, bars);
+                            count = bars.length;
+                        }
                     }
-                    if (bars.length > 0) {
-                        await this.barsService.batchUpsert(client_1.Asset.crypto, freq, bars);
-                        result[key] = bars.length;
-                    }
-                    else {
-                        result[key] = 0;
-                    }
+                    result[key] = count;
+                    this.logger.log(`syncCrypto ${key}: ${count} rows`);
                 }
                 catch (e) {
                     this.logger.warn(`${key} failed: ${e}`);

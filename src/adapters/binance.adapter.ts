@@ -45,7 +45,7 @@ export class BinanceAdapter {
     const sym = symbol.replace('/', '').toUpperCase();
     const end = endMs ?? Date.now();
     const stepMs = FREQ_MS[freq];
-    const frames: any[][] = [];
+    const all: BarRow[] = [];
     let cur = startMs;
 
     while (cur < end) {
@@ -54,15 +54,53 @@ export class BinanceAdapter {
       if (data === null) throw new Error(`fetchRange ${symbol}@${freq}: all retries failed at ${cur}`);
       if (!Array.isArray(data) || data.length === 0) break;
 
-      frames.push(data);
+      const bars = this.parseKlines(data, symbol, freq);
+      all.push(...bars);
+
       const lastOpenMs = parseInt(data[data.length - 1][0]);
       if (data.length < MAX_LIMIT || lastOpenMs + stepMs >= end) break;
       cur = lastOpenMs + stepMs;
       await new Promise((r) => setTimeout(r, 250));
     }
 
-    const all = frames.flat();
-    return this.parseKlines(all, symbol, freq);
+    return all;
+  }
+
+  async fetchRangeStream(
+    symbol: string,
+    freq: string,
+    startMs: number,
+    onBatch: (bars: BarRow[]) => Promise<void>,
+    endMs?: number,
+  ): Promise<number> {
+    const interval = FREQ_MAP[freq];
+    if (!interval) throw new Error(`unsupported freq: ${freq}`);
+
+    const sym = symbol.replace('/', '').toUpperCase();
+    const end = endMs ?? Date.now();
+    const stepMs = FREQ_MS[freq];
+    let cur = startMs;
+    let total = 0;
+
+    while (cur < end) {
+      const url = `${BASE_URL}/klines?symbol=${sym}&interval=${interval}&startTime=${cur}&endTime=${end}&limit=${MAX_LIMIT}`;
+      const data = await this.curlJson(url);
+      if (data === null) throw new Error(`fetchRangeStream ${symbol}@${freq}: all retries failed at ${cur}`);
+      if (!Array.isArray(data) || data.length === 0) break;
+
+      const bars = this.parseKlines(data, symbol, freq);
+      if (bars.length > 0) {
+        await onBatch(bars);
+        total += bars.length;
+      }
+
+      const lastOpenMs = parseInt(data[data.length - 1][0]);
+      if (data.length < MAX_LIMIT || lastOpenMs + stepMs >= end) break;
+      cur = lastOpenMs + stepMs;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+
+    return total;
   }
 
   private parseKlines(data: any[][], symbol: string, freq: string): BarRow[] {
