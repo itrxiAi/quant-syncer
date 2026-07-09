@@ -22,6 +22,7 @@ export interface BarInput {
   volume: number | null;
   amount: number | null;
   factor: number;
+  takerBuyBaseVolume?: number | null;
   vendor: string;
 }
 
@@ -104,8 +105,8 @@ export class BarsService {
     for (let i = 0; i < bars.length; i += BATCH_SIZE) {
       const batch = bars.slice(i, i + BATCH_SIZE);
       const placeholders = batch.map((_, idx) => {
-        const off = idx * 12;
-        return `($${off + 1}, $${off + 2}, $${off + 3}::"Asset", $${off + 4}::"Freq", $${off + 5}, $${off + 6}, $${off + 7}, $${off + 8}, $${off + 9}, $${off + 10}, $${off + 11}, $${off + 12})`;
+        const off = idx * 13;
+        return `($${off + 1}, $${off + 2}, $${off + 3}::"Asset", $${off + 4}::"Freq", $${off + 5}, $${off + 6}, $${off + 7}, $${off + 8}, $${off + 9}, $${off + 10}, $${off + 11}, $${off + 12}, $${off + 13})`;
       }).join(', ');
 
       const params: any[] = [];
@@ -114,15 +115,17 @@ export class BarsService {
           b.ts, b.symbol, asset, freq,
           b.open, b.high, b.low, b.close,
           b.volume, b.amount, b.factor ?? 1,
+          b.takerBuyBaseVolume ?? null,
           b.vendor,
         );
       }
 
-      const sql = `INSERT INTO "bar" (ts, symbol, asset, freq, open, high, low, close, volume, amount, factor, vendor)
+      const sql = `INSERT INTO "bar" (ts, symbol, asset, freq, open, high, low, close, volume, amount, factor, taker_buy_base_volume, vendor)
         VALUES ${placeholders}
         ON CONFLICT (ts, symbol, asset, freq) DO UPDATE SET
           open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, close = EXCLUDED.close,
-          volume = EXCLUDED.volume, amount = EXCLUDED.amount, factor = EXCLUDED.factor, vendor = EXCLUDED.vendor`;
+          volume = EXCLUDED.volume, amount = EXCLUDED.amount, factor = EXCLUDED.factor,
+          taker_buy_base_volume = EXCLUDED.taker_buy_base_volume, vendor = EXCLUDED.vendor`;
 
       await this.prisma.$executeRawUnsafe(sql, ...params);
       count += batch.length;
