@@ -193,18 +193,12 @@ export class BarsService {
   }
 
   async listLatest(asset: Asset, freq: Freq) {
-    const indexCode = this.allSymbolsIndexCode(asset);
     const rows = await (this.prisma as any).$queryRawUnsafe(
-      `SELECT m.symbol, b.ts
-       FROM "index_member" m
-       LEFT JOIN LATERAL (
-         SELECT ts FROM "bar"
-         WHERE symbol = m.symbol AND asset = $1::"Asset" AND freq = $2::"Freq"
-           AND ts >= date_trunc('year', NOW()) - INTERVAL '1 month'
-         ORDER BY ts DESC LIMIT 1
-       ) b ON true
-       WHERE m.index_code = $3`,
-      asset, freq, indexCode,
+      `SELECT symbol, MAX(ts) AS ts
+       FROM "bar"
+       WHERE asset = $1::"Asset" AND freq = $2::"Freq"
+       GROUP BY symbol ORDER BY symbol`,
+      asset, freq,
     ) as any[];
     const result: Record<string, string | null> = {};
     for (const r of rows) {
