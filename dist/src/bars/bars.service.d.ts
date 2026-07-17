@@ -15,6 +15,7 @@ export interface BarInput {
 }
 export declare class BarsService {
     private prisma;
+    private readonly logger;
     constructor(prisma: PrismaService);
     findBars(params: {
         asset: Asset;

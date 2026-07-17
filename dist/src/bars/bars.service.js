@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var BarsService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BarsService = void 0;
 const common_1 = require("@nestjs/common");
@@ -22,8 +23,9 @@ const MAX_RANGE_DAYS_BY_FREQ = {
     m15: 1095,
     m5: 548,
 };
-let BarsService = class BarsService {
+let BarsService = BarsService_1 = class BarsService {
     prisma;
+    logger = new common_1.Logger(BarsService_1.name);
     constructor(prisma) {
         this.prisma = prisma;
     }
@@ -78,12 +80,27 @@ let BarsService = class BarsService {
                 }
             }
         }
-        return this.prisma.bar.findMany({
+        const t0 = Date.now();
+        const result = await this.prisma.bar.findMany({
             where,
             orderBy: [{ symbol: 'asc' }, { ts: 'asc' }],
             take: MAX_ROWS,
             ...(Object.keys(select).length > 0 ? { select } : {}),
         });
+        const t1 = Date.now();
+        let rawMs = null;
+        if (params.symbols && params.symbols.length > 1 && params.start && params.end) {
+            const syms = params.symbols;
+            const placeholders = syms.map((_, i) => `$${i + 1}`).join(',');
+            const rawVals = [...syms, new Date(params.start), new Date(params.end)];
+            const rawSql = `SELECT ts, symbol, open, high, low, close, volume, amount, factor FROM bar WHERE asset = 'ashare' AND freq = 'd1' AND symbol IN (${placeholders}) AND ts >= $${syms.length + 1} AND ts <= $${syms.length + 2} ORDER BY symbol, ts LIMIT ${MAX_ROWS}`;
+            const tRaw0 = Date.now();
+            const rawResult = await this.prisma.$queryRawUnsafe(rawSql, ...rawVals);
+            const tRaw1 = Date.now();
+            rawMs = tRaw1 - tRaw0;
+        }
+        this.logger.log(`findBars: prisma.findMany ${t1 - t0}ms, rows=${result.length}, symbols=${params.symbols?.length ?? 1}${rawMs !== null ? `, rawSQL ${rawMs}ms` : ''}`);
+        return result;
     }
     async batchUpsert(asset, freq, bars) {
         let count = 0;
@@ -177,7 +194,7 @@ let BarsService = class BarsService {
     }
 };
 exports.BarsService = BarsService;
-exports.BarsService = BarsService = __decorate([
+exports.BarsService = BarsService = BarsService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService])
 ], BarsService);
