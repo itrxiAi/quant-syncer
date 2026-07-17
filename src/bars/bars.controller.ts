@@ -18,6 +18,7 @@ export class BarsController {
     @Query('start') start?: string,
     @Query('end') end?: string,
     @Query('fields') fields?: string,
+    @Query('page_token') pageToken?: string,
   ) {
     if (!symbol && !symbols && !index) {
       throw new BadRequestException('one of symbol, symbols, or index is required');
@@ -33,6 +34,7 @@ export class BarsController {
       start,
       end,
       fields: flds,
+      pageToken,
     });
   }
 

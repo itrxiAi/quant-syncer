@@ -39,6 +39,7 @@ export class BarsService {
     start?: string;
     end?: string;
     fields?: string[];
+    pageToken?: string;
   }) {
     const where: any = {
       asset: params.asset,
@@ -81,6 +82,18 @@ export class BarsService {
       }
     }
 
+    // Cursor pagination: decode pageToken = base64(lastSymbol|lastTsISO)
+    if (params.pageToken) {
+      const decoded = Buffer.from(params.pageToken, 'base64').toString('utf-8');
+      const sep = decoded.lastIndexOf('|');
+      const cursorSymbol = decoded.slice(0, sep);
+      const cursorTs = new Date(decoded.slice(sep + 1));
+      where.OR = [
+        { symbol: { gt: cursorSymbol } },
+        { symbol: cursorSymbol, ts: { gt: cursorTs } },
+      ];
+    }
+
     const select: any = {};
     if (params.fields && params.fields.length > 0) {
       select.ts = true;
@@ -92,12 +105,20 @@ export class BarsService {
       }
     }
 
-    return this.prisma.bar.findMany({
+    const rows = await this.prisma.bar.findMany({
       where,
       orderBy: [{ symbol: 'asc' }, { ts: 'asc' }],
       take: MAX_ROWS,
       ...(Object.keys(select).length > 0 ? { select } : {}),
     });
+
+    let nextPageToken: string | undefined;
+    if (rows.length === MAX_ROWS) {
+      const last = rows[rows.length - 1];
+      nextPageToken = Buffer.from(`${last.symbol}|${last.ts.toISOString()}`, 'utf-8').toString('base64');
+    }
+
+    return { bars: rows, next_page_token: nextPageToken ?? null };
   }
 
   async batchUpsert(asset: Asset, freq: Freq, bars: BarInput[]): Promise<number> {
