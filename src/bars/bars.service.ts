@@ -40,6 +40,7 @@ export class BarsService {
     end?: string;
     fields?: string[];
     pageToken?: string;
+    limit?: number;
   }) {
     const where: any = {
       asset: params.asset,
@@ -105,15 +106,22 @@ export class BarsService {
       }
     }
 
+    const take = params.limit ?? MAX_ROWS;
+    const orderBy = params.limit
+      ? [{ ts: 'desc' as const }, { symbol: 'asc' as const }]
+      : [{ symbol: 'asc' as const }, { ts: 'asc' as const }];
+
     const rows = await this.prisma.bar.findMany({
       where,
-      orderBy: [{ symbol: 'asc' }, { ts: 'asc' }],
-      take: MAX_ROWS,
+      orderBy,
+      take,
       ...(Object.keys(select).length > 0 ? { select } : {}),
     });
 
+    if (params.limit) rows.reverse();
+
     let nextPageToken: string | undefined;
-    if (rows.length === MAX_ROWS) {
+    if (!params.limit && rows.length === MAX_ROWS) {
       const last = rows[rows.length - 1];
       nextPageToken = Buffer.from(`${last.symbol}|${last.ts.toISOString()}`, 'utf-8').toString('base64');
     }
