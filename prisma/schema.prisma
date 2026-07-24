@@ -11,6 +11,7 @@ enum Asset {
   ashare
   ashare_index
   crypto
+  macro
 }
 
 enum Freq {
@@ -93,3 +94,16 @@ model IndexMember {
   @@map("index_member")
 }
 
+model MacroMarket {
+  id        String   @id @db.VarChar(64)
+  question  String   @db.Text
+  slug      String?  @db.VarChar(256)
+  yesProb   Float?   @map("yes_prob")
+  vol24h    Float?   @map("vol_24h")
+  volTotal  Float?   @map("vol_total")
+  endDate   DateTime? @map("end_date")
+  active    Boolean  @default(true)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("macro_market")
+}

@@ -284,6 +284,8 @@ export class SyncService {
       await this.syncIndexBars();
     } else if (asset === 'crypto') {
       await this.syncCrypto(CRYPTO_SYMBOLS, CRYPTO_FREQS);
+    } else if (asset === 'macro') {
+      this.logger.log('use POST /v1/admin/sync-macro for macro sync');
     }
   }
 }

@@ -7,6 +7,7 @@ import { CalendarModule } from './calendar/calendar.module';
 import { AdaptersModule } from './adapters/adapters.module';
 import { AdminModule } from './admin/admin.module';
 import { SyncModule } from './sync/sync.module';
+import { MacroModule } from './macro/macro.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -19,6 +20,7 @@ import { AppController } from './app.controller';
     CalendarModule,
     AdminModule,
     SyncModule,
+    MacroModule,
   ],
   controllers: [AppController],
 })
