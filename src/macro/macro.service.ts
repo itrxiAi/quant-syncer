@@ -118,7 +118,7 @@ export class MacroService {
     }
   }
 
-  @Cron('0 9 * * 1-5')
+  @Cron('0 6 * * 1-5')
   async syncMacroDaily() {
     if (this.macroSyncing) {
       this.logger.warn('macro sync already running, skip');
