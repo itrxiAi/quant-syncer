@@ -29,7 +29,7 @@ export class AkshareAdapter {
   async fetchSpot(): Promise<SpotResult> {
     const bars: BarRow[] = [];
     const ts = new Date();
-    ts.setHours(0, 0, 0, 0);
+    ts.setUTCHours(0, 0, 0, 0);
 
     // 新浪 hs_a 分页拉全量 A 股，每页 100 条
     const PAGE_SIZE = 100;

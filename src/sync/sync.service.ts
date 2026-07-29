@@ -160,8 +160,9 @@ export class SyncService {
       }
 
       const latest = await this.barsService.latestTs(Asset.ashare, sym, Freq.d1);
-      if (latest !== null && lastTradingDay !== null && latest >= lastTradingDay) {
-        continue; // already up to date
+      const catchUpTarget = lastTradingDay ? this.addDays(lastTradingDay, -1) : null;
+      if (latest !== null && catchUpTarget !== null && latest >= catchUpTarget) {
+        continue; // already caught up to T-1; T will be handled by syncAShareSpot
       }
 
       try {
@@ -190,7 +191,7 @@ export class SyncService {
 
   private async getLastCompletedTradingDay(): Promise<Date | null> {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setUTCHours(0, 0, 0, 0);
     const row = await this.prisma.calendar.findFirst({
       where: { asset: Asset.ashare, isOpen: true, date: { lte: today } },
       orderBy: { date: 'desc' },
