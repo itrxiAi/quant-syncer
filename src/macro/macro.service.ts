@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { FredAdapter, FRED_SERIES } from '../adapters/fred.adapter';
+import { FrankfurterAdapter } from '../adapters/frankfurter.adapter';
 import { PolymarketAdapter } from '../adapters/polymarket.adapter';
 import { BarsService } from '../bars/bars.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -15,6 +16,7 @@ export class MacroService {
 
   constructor(
     private fred: FredAdapter,
+    private frankfurter: FrankfurterAdapter,
     private polymarket: PolymarketAdapter,
     private barsService: BarsService,
     private prisma: PrismaService,
@@ -56,6 +58,34 @@ export class MacroService {
       }
     }
     return result;
+  }
+
+  async syncDxy(): Promise<number> {
+    try {
+      const latest = await this.withTimeout('latestTs DXY', () =>
+        this.barsService.latestTs(Asset.macro, 'DXY', Freq.d1),
+      );
+      let bars;
+      if (latest === null) {
+        // Full history from 1999-01-04 (EUR inception)
+        bars = await this.frankfurter.fetchDxyHistory(
+          new Date('1999-01-04T00:00:00Z'),
+          new Date(),
+        );
+      } else {
+        bars = await this.frankfurter.fetchDxySince(latest);
+      }
+      if (bars.length > 0) {
+        await this.withTimeout('upsert DXY', () =>
+          this.barsService.batchUpsert(Asset.macro, Freq.d1, bars),
+        );
+      }
+      this.logger.log(`syncDxy: ${bars.length} rows`);
+      return bars.length;
+    } catch (e) {
+      this.logger.warn(`syncDxy failed: ${e}`);
+      return -1;
+    }
   }
 
   async syncPolymarket(): Promise<number> {
@@ -108,8 +138,9 @@ export class MacroService {
     this.macroSyncing = true;
     try {
       const fredResult = await this.syncFred();
+      const dxyCount = await this.syncDxy();
       const polyCount = await this.syncPolymarket();
-      return { fred: fredResult, polymarket: polyCount };
+      return { fred: fredResult, dxy: dxyCount, polymarket: polyCount };
     } catch (e) {
       this.logger.error(`manual macro sync failed: ${e}`);
       return { error: String(e) };
@@ -128,6 +159,7 @@ export class MacroService {
     try {
       this.logger.log('=== macro daily sync start ===');
       await this.syncFred();
+      await this.syncDxy();
       await this.syncPolymarket();
       this.logger.log('=== macro daily sync done ===');
     } catch (e) {

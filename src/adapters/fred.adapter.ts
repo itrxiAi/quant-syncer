@@ -20,7 +20,7 @@ export const FRED_SERIES: Record<string, string> = {
   UST10Y: 'DGS10',
   UST30Y: 'DGS30',
   VIX: 'VIXCLS',
-  DXY: 'DTWEXBGS',
+  DTWEXBGS: 'DTWEXBGS',
   SP500: 'SP500',
 };
 
