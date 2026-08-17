@@ -199,6 +199,28 @@ export class SyncService {
     return row?.date ?? null;
   }
 
+  private async withRetry<T>(
+    label: string,
+    maxRetries: number,
+    fn: () => Promise<T>,
+  ): Promise<T> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (e) {
+        this.logger.error(`${label} failed (attempt ${attempt}/${maxRetries}): ${e}`);
+        if (attempt < maxRetries) {
+          const delay = attempt * 60_000;
+          this.logger.log(`${label} retrying in ${delay / 1000}s...`);
+          await new Promise((r) => setTimeout(r, delay));
+        } else {
+          throw e;
+        }
+      }
+    }
+    throw new Error(`${label} exhausted retries`);
+  }
+
   @Cron('30 18 * * 1-5')
   async syncAShareDaily() {
     if (this.ashareSyncing) {
@@ -206,12 +228,13 @@ export class SyncService {
       return;
     }
     this.ashareSyncing = true;
+    const maxRetries = 5;
     try {
       this.logger.log('=== ashare daily sync start ===');
-      await this.syncCalendar();
-      await this.catchUpAshare();
-      await this.syncAShareSpot();
-      await this.syncIndexBars();
+      await this.withRetry('syncCalendar', maxRetries, () => this.syncCalendar());
+      await this.withRetry('catchUpAshare', maxRetries, () => this.catchUpAshare());
+      await this.withRetry('syncAShareSpot', maxRetries, () => this.syncAShareSpot());
+      await this.withRetry('syncIndexBars', maxRetries, () => this.syncIndexBars());
       this.logger.log('=== ashare daily sync done ===');
     } catch (e) {
       this.logger.error(`ashare sync failed: ${e}`);
