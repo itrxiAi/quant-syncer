@@ -96,7 +96,8 @@ export class FredAdapter {
   private async curlText(url: string, retries = 3): Promise<string | null> {
     for (let i = 0; i < retries; i++) {
       try {
-        const res = await axios.get(url, { timeout: 15000 });
+        // FRED blocks proxy exit IPs with "Access Denied"; bypass proxy (direct connection works)
+        const res = await axios.get(url, { timeout: 15000, proxy: false });
         return res.data;
       } catch (e) {
         logger.warn(`curl attempt ${i + 1}/${retries} failed: ${e}`);
