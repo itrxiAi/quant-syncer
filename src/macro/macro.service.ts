@@ -5,6 +5,7 @@ import { FrankfurterAdapter } from '../adapters/frankfurter.adapter';
 import { PolymarketAdapter } from '../adapters/polymarket.adapter';
 import { BarsService } from '../bars/bars.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotifyService } from '../notify/notify.service';
 import { Asset, Freq } from '@prisma/client';
 
 const FRED_SYMBOLS = Object.keys(FRED_SERIES);
@@ -20,6 +21,7 @@ export class MacroService {
     private polymarket: PolymarketAdapter,
     private barsService: BarsService,
     private prisma: PrismaService,
+    private notify: NotifyService,
   ) {}
 
   private async withTimeout<T>(label: string, fn: () => Promise<T>, ms = 30000): Promise<T> {
@@ -33,6 +35,7 @@ export class MacroService {
 
   async syncFred(): Promise<Record<string, number>> {
     const result: Record<string, number> = {};
+    const failed: string[] = [];
     for (const sym of FRED_SYMBOLS) {
       try {
         const latest = await this.withTimeout(`latestTs ${sym}`, () =>
@@ -53,9 +56,13 @@ export class MacroService {
         this.logger.log(`syncFred ${sym}: ${bars.length} rows`);
         await new Promise((r) => setTimeout(r, 500));
       } catch (e) {
-        this.logger.warn(`syncFred ${sym} failed: ${e}`);
+        this.logger.error(`syncFred ${sym} failed: ${e}`);
         result[sym] = -1;
+        failed.push(sym);
       }
+    }
+    if (failed.length > 0) {
+      throw new Error(`syncFred failed for: ${failed.join(', ')}`);
     }
     return result;
   }
@@ -164,6 +171,7 @@ export class MacroService {
       this.logger.log('=== macro daily sync done ===');
     } catch (e) {
       this.logger.error(`macro sync failed: ${e}`);
+      await this.notify.sendTg(`⚠️ Macro sync 失败: ${e}`);
     } finally {
       this.macroSyncing = false;
     }

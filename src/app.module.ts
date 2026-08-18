@@ -8,6 +8,7 @@ import { AdaptersModule } from './adapters/adapters.module';
 import { AdminModule } from './admin/admin.module';
 import { SyncModule } from './sync/sync.module';
 import { MacroModule } from './macro/macro.module';
+import { NotifyModule } from './notify/notify.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -21,6 +22,7 @@ import { AppController } from './app.controller';
     AdminModule,
     SyncModule,
     MacroModule,
+    NotifyModule,
   ],
   controllers: [AppController],
 })

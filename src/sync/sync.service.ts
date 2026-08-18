@@ -5,6 +5,7 @@ import { AkshareAdapter } from '../adapters/akshare.adapter';
 import { BinanceAdapter, FREQ_MS } from '../adapters/binance.adapter';
 import { BarsService } from '../bars/bars.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotifyService } from '../notify/notify.service';
 import { Asset, Freq } from '@prisma/client';
 
 const CRYPTO_SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'DOGEUSDT'];
@@ -24,6 +25,7 @@ export class SyncService {
     private binance: BinanceAdapter,
     private barsService: BarsService,
     private prisma: PrismaService,
+    private notify: NotifyService,
   ) {}
 
   async syncAShareSpot() {
@@ -232,12 +234,18 @@ export class SyncService {
     try {
       this.logger.log('=== ashare daily sync start ===');
       await this.withRetry('syncCalendar', maxRetries, () => this.syncCalendar());
-      await this.withRetry('catchUpAshare', maxRetries, () => this.catchUpAshare());
+      const catchUpResult = await this.withRetry('catchUpAshare', maxRetries, () => this.catchUpAshare());
       await this.withRetry('syncAShareSpot', maxRetries, () => this.syncAShareSpot());
       await this.withRetry('syncIndexBars', maxRetries, () => this.syncIndexBars());
-      this.logger.log('=== ashare daily sync done ===');
+
+      if (catchUpResult && catchUpResult.errors && catchUpResult.errors.length > 0) {
+        this.logger.warn(`ashare sync done with ${catchUpResult.errors.length} symbol errors: ${catchUpResult.errors.slice(0, 5).join(', ')}`);
+      } else {
+        this.logger.log('=== ashare daily sync done ===');
+      }
     } catch (e) {
       this.logger.error(`ashare sync failed: ${e}`);
+      await this.notify.sendTg(`⚠️ A股 sync 失败: ${e}`);
     } finally {
       this.ashareSyncing = false;
     }
