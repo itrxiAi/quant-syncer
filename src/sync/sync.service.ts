@@ -8,7 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NotifyService } from '../notify/notify.service';
 import { Asset, Freq } from '@prisma/client';
 
-const CRYPTO_SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'DOGEUSDT'];
+const CRYPTO_SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'DOGEUSDT', 'XAUUSDT'];
 const CRYPTO_FREQS = ['m5', 'm15', 'h1', 'h4', 'd1'];
 
 const INDEX_SYMBOLS = ['SH000300', 'SH000905', 'SH000852'];
